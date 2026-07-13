@@ -1,2 +1,5 @@
-.agents/
-.specify/
+spec.md
+tasks.md
+node_modules/
+out/
+*.vsix
