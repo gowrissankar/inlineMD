@@ -7,8 +7,8 @@ const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
 md.core.ruler.push('inject_line_mapping', (state) => {
   for (const token of state.tokens) {
     if (token.map) {
-      token.attrSet('start', String(token.map[0]));
-      token.attrSet('end', String(token.map[1]));
+      token.attrSet('data-line-start', String(token.map[0]));
+      token.attrSet('data-line-end', String(token.map[1]));
     }
   }
 });
