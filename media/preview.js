@@ -12,6 +12,9 @@
   window.addEventListener('message', (event) => {
     const msg = event.data;
     if (msg.type === 'render') {
+
+      currentWidget = null;
+      currentTarget = null;
       const scrollTop = preview.scrollTop;
       preview.innerHTML = msg.html;
       preview.scrollTop = scrollTop;
@@ -123,7 +126,21 @@
     currentWidget = widget;
     currentTarget.insertAdjacentElement('afterend', widget);
 
-    if (textarea) { setTimeout(() => textarea.focus(), 0); }
+    if (textarea) {
+      // Enter = save, Shift+Enter = newline (default textarea behaviour)
+      textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          vscode.postMessage({
+            type: 'save',
+            start: targetStart,
+            end: targetEnd,
+            newText: textarea.value,
+          });
+        }
+      });
+      setTimeout(() => textarea.focus(), 0);
+    }
   }
 
   function buildTextarea(lines) {

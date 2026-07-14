@@ -37,7 +37,7 @@ function openPreview(context: vscode.ExtensionContext, document: vscode.TextDocu
   panel = vscode.window.createWebviewPanel(
     'inlinemd.preview',
     'inlineMD',
-    vscode.ViewColumn.Beside,
+    vscode.ViewColumn.Active,
     {
       enableScripts: true,
       retainContextWhenHidden: true,
@@ -53,6 +53,9 @@ function openPreview(context: vscode.ExtensionContext, document: vscode.TextDocu
     switch (message.type) {
       case 'getLines':
         handleGetLines(message.start, message.end);
+        break;
+      case 'save':
+        handleSave(message.start, message.end, message.newText);
         break;
     }
   }, null, context.subscriptions);
@@ -72,7 +75,7 @@ function handleGetLines(start: number, end: number): void {
 
   const lineCount = currentDocument.lineCount;
   const contextStart = Math.max(0, start - 2);
-  const contextEnd   = Math.min(lineCount, end + 2);
+  const contextEnd = Math.min(lineCount, end + 2);
 
   const lines: string[] = [];
   for (let i = contextStart; i < contextEnd; i++) {
@@ -87,6 +90,22 @@ function handleGetLines(start: number, end: number): void {
     contextStart,
     filePath: currentDocument.fileName,
   });
+}
+
+async function handleSave(start: number, end: number, newText: string): Promise<void> {
+  if (!currentDocument) { return; }
+
+  const lastLineIndex = end - 1;
+  const lastLine = currentDocument.lineAt(lastLineIndex);
+
+  const range = new vscode.Range(
+    new vscode.Position(start, 0),
+    new vscode.Position(lastLineIndex, lastLine.text.length)
+  );
+
+  const edit = new vscode.WorkspaceEdit();
+  edit.replace(currentDocument.uri, range, newText);
+  await vscode.workspace.applyEdit(edit);
 }
 
 function buildWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
