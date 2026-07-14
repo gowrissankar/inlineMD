@@ -151,3 +151,92 @@ th {
   outline: 1px dashed var(--vscode-focusBorder, rgba(0, 122, 204, 0.4));
   outline-offset: 2px;
 }
+
+/* ─── Peek widget ─────────────────────────────────────────────────────────── */
+.peek-widget {
+  margin: 6px 0 10px;
+  border: 1px solid var(--vscode-peekView-border, #007acc);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.peek-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 10px;
+  background: var(--vscode-peekViewTitle-background, #1e3a5f);
+  border-bottom: 1px solid var(--vscode-peekView-border, #007acc);
+}
+
+.peek-filename {
+  color: var(--vscode-peekViewTitleLabel-foreground, #fff);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+}
+
+.peek-range {
+  color: var(--vscode-peekViewTitleDescription-foreground, #9ab);
+  font-size: 11px;
+}
+
+.peek-body {
+  display: flex;
+  background: var(--vscode-peekViewEditor-background, #001f3d);
+  padding: 4px 0;
+}
+
+.peek-gutter {
+  min-width: 44px;
+  padding: 0 8px 0 4px;
+  flex-shrink: 0;
+  text-align: right;
+  background: var(--vscode-peekViewEditorGutter-background, #001733);
+  user-select: none;
+}
+
+.peek-gutter-num {
+  height: 20px;
+  line-height: 20px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: var(--vscode-editor-font-size, 13px);
+  color: var(--vscode-editorLineNumber-foreground, #555);
+}
+
+.peek-gutter-num.active {
+  color: var(--vscode-editorLineNumber-activeForeground, #ccc);
+}
+
+.peek-content {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.peek-line-context {
+  height: 20px;
+  line-height: 20px;
+  padding: 0 12px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: var(--vscode-editor-font-size, 13px);
+  color: var(--vscode-disabledForeground, #555);
+  white-space: pre;
+}
+
+.peek-editor {
+  display: block;
+  width: 100%;
+  padding: 0 12px;
+  background: var(--vscode-editor-rangeHighlightBackground, rgba(255, 255, 255, 0.05));
+  color: var(--vscode-editor-foreground);
+  border: none;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: var(--vscode-editor-font-size, 13px);
+  line-height: 20px;
+  white-space: pre;
+  box-sizing: border-box;
+}

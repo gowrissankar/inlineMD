@@ -1,14 +1,138 @@
-//VScode webview : embedded browser window inside the editor
 (function () {
   const vscode = acquireVsCodeApi();
   const preview = document.getElementById('preview');
 
+  // Each line row in the widget is exactly this tall — gutter and content must match
+  const LINE_H = 20;
+
+  let currentWidget = null;
+  let currentTarget = null;
+
+  // Messages from extension host
   window.addEventListener('message', (event) => {
-    const message = event.data;
-    if (message.type === 'render') {
+    const msg = event.data;
+    if (msg.type === 'render') {
       const scrollTop = preview.scrollTop;
-      preview.innerHTML = message.html;
+      preview.innerHTML = msg.html;
       preview.scrollTop = scrollTop;
+    } else if (msg.type === 'lines') {
+      showWidget(msg);
     }
   });
+
+  //double click to peek
+  document.addEventListener('dblclick', (e) => {
+    if (currentWidget && currentWidget.contains(e.target)) { return; }
+
+    let el = e.target;
+    while (el && el !== preview) {
+      if (el.dataset && el.dataset.lineStart !== undefined) { break; }
+      el = el.parentElement;
+    }
+    if (!el || el === preview) { return; }
+
+    closeWidget();
+    currentTarget = el;
+    vscode.postMessage({
+      type: 'getLines',
+      start: parseInt(el.dataset.lineStart, 10),
+      end: parseInt(el.dataset.lineEnd, 10),
+    });
+  });
+
+  //esc to close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && currentWidget) { closeWidget(); }
+  });
+
+  document.addEventListener('mousedown', (e) => {
+    if (currentWidget && !currentWidget.contains(e.target)) { closeWidget(); }
+  });
+
+  function closeWidget() {
+    if (currentWidget) {
+      currentWidget.remove();
+      currentWidget = null;
+      currentTarget = null;
+    }
+  }
+
+  function showWidget(data) {
+    const { lines, targetStart, targetEnd, contextStart, filePath } = data;
+
+    const widget = document.createElement('div');
+    widget.className = 'peek-widget';
+
+    //header
+    const header = document.createElement('div');
+    header.className = 'peek-header';
+    const fileName = filePath.split(/[\\/]/).pop();
+    header.innerHTML =
+      `<span class="peek-filename">${fileName}</span>` +
+      `<span class="peek-range">L${targetStart + 1}–${targetEnd}</span>`;
+    widget.appendChild(header);
+
+    // Body: gutter | content
+    const body = document.createElement('div');
+    body.className = 'peek-body';
+
+    const gutter = document.createElement('div');
+    gutter.className = 'peek-gutter';
+
+    const content = document.createElement('div');
+    content.className = 'peek-content';
+
+    let textarea = null;
+    const targetLineTexts = [];
+    let pastTarget = false;
+
+    lines.forEach((lineText, i) => {
+      const lineNum = contextStart + i;
+      const isTarget = lineNum >= targetStart && lineNum < targetEnd;
+
+      // Gutter number — same line height as content rows
+      const gutterNum = document.createElement('div');
+      gutterNum.className = 'peek-gutter-num' + (isTarget ? ' active' : '');
+      gutterNum.textContent = String(lineNum + 1);
+      gutter.appendChild(gutterNum);
+
+      if (isTarget) {
+        targetLineTexts.push(lineText);
+      } else {
+        if (targetLineTexts.length > 0 && !pastTarget) {
+          textarea = buildTextarea(targetLineTexts);
+          content.appendChild(textarea);
+          pastTarget = true;
+        }
+        const div = document.createElement('div');
+        div.className = 'peek-line-context';
+        div.textContent = lineText || '\u00A0';
+        content.appendChild(div);
+      }
+    });
+
+    if (targetLineTexts.length > 0 && !pastTarget) {
+      textarea = buildTextarea(targetLineTexts);
+      content.appendChild(textarea);
+    }
+
+    body.appendChild(gutter);
+    body.appendChild(content);
+    widget.appendChild(body);
+
+    currentWidget = widget;
+    currentTarget.insertAdjacentElement('afterend', widget);
+
+    if (textarea) { setTimeout(() => textarea.focus(), 0); }
+  }
+
+  function buildTextarea(lines) {
+    const ta = document.createElement('textarea');
+    ta.className = 'peek-editor';
+    ta.value = lines.join('\n');
+    ta.spellcheck = false;
+    ta.style.height = (lines.length * LINE_H) + 'px';
+    return ta;
+  }
+
 })();

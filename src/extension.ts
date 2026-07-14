@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { renderMarkdown } from './renderer';
 
 let panel: vscode.WebviewPanel | undefined;
+let currentDocument: vscode.TextDocument | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
   const openPreviewCommand = vscode.commands.registerCommand(
@@ -16,7 +17,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  // onDidChangeTextDocument listens for live update
+  // Re-render on every keystroke — reads from TextDocument (in-memory, not disk)
   const onDocChange = vscode.workspace.onDidChangeTextDocument((e) => {
     if (panel && e.document.languageId === 'markdown') {
       sendContent(e.document);
@@ -26,7 +27,6 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(openPreviewCommand, onDocChange);
 }
 
-//lifetime of the panel
 function openPreview(context: vscode.ExtensionContext, document: vscode.TextDocument): void {
   if (panel) {
     panel.reveal(vscode.ViewColumn.Beside);
@@ -48,15 +48,47 @@ function openPreview(context: vscode.ExtensionContext, document: vscode.TextDocu
   panel.webview.html = buildWebviewHtml(panel.webview, context.extensionUri);
   sendContent(document);
 
+  // Handle messages from the webview
+  panel.webview.onDidReceiveMessage((message) => {
+    switch (message.type) {
+      case 'getLines':
+        handleGetLines(message.start, message.end);
+        break;
+    }
+  }, null, context.subscriptions);
+
   panel.onDidDispose(() => { panel = undefined; }, null, context.subscriptions);
 }
 
 function sendContent(document: vscode.TextDocument): void {
   if (!panel) { return; }
+  currentDocument = document;
   panel.webview.postMessage({ type: 'render', html: renderMarkdown(document.getText()) });
 }
 
-//webview UI
+// Reads ~5 lines around the target block and sends them to the webview
+function handleGetLines(start: number, end: number): void {
+  if (!panel || !currentDocument) { return; }
+
+  const lineCount = currentDocument.lineCount;
+  const contextStart = Math.max(0, start - 2);
+  const contextEnd   = Math.min(lineCount, end + 2);
+
+  const lines: string[] = [];
+  for (let i = contextStart; i < contextEnd; i++) {
+    lines.push(currentDocument.lineAt(i).text);
+  }
+
+  panel.webview.postMessage({
+    type: 'lines',
+    lines,
+    targetStart: start,
+    targetEnd: end,
+    contextStart,
+    filePath: currentDocument.fileName,
+  });
+}
+
 function buildWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
   const stylesUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'styles.css'));
   const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'preview.js'));
@@ -79,7 +111,6 @@ function buildWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri): st
 </html>`;
 }
 
-//nonce: CSP security requirement ( to prevent script injection )
 function getNonce(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   return Array.from({ length: 32 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
