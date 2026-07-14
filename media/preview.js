@@ -152,4 +152,7 @@
     return ta;
   }
 
+  // Signal to the extension that the webview JS is loaded and ready to receive messages
+  vscode.postMessage({ type: 'ready' });
+
 })();
