@@ -119,14 +119,27 @@ function buildWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri): st
   const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'preview.js'));
   const nonce = getNonce();
 
+  // Read the active VS Code user markdown config settings
+  const config = vscode.workspace.getConfiguration('markdown');
+  const fontFamily = config.get<string>('preview.fontFamily') || '-apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", system-ui, "Ubuntu", "Droid Sans", sans-serif';
+  const fontSize = config.get<number>('preview.fontSize') || 14;
+  const lineHeight = config.get<number>('preview.lineHeight') || 1.6;
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';" />
+    content="default-src 'none'; style-src ${webview.cspSource} 'nonce-${nonce}'; script-src 'nonce-${nonce}';" />
   <link rel="stylesheet" href="${stylesUri}" />
+  <style nonce="${nonce}">
+    :root {
+      --markdown-font-family: ${fontFamily};
+      --markdown-font-size: ${fontSize}px;
+      --markdown-line-height: ${lineHeight};
+    }
+  </style>
   <title>inlineMD</title>
 </head>
 <body>
