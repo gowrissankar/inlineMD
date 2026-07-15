@@ -67,7 +67,6 @@
     while (el && el !== preview) {
       if (el.tagName === 'A' && el.getAttribute('href')) {
         const href = el.getAttribute('href');
-        // Check if it is a relative local link (does not start with a protocol or hash)
         if (!/^https?:\/\//i.test(href) && !href.startsWith('#')) {
           e.preventDefault();
           vscode.postMessage({ type: 'openLink', href });
