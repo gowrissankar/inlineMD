@@ -33,12 +33,12 @@ The extension is designed around VS Code's Custom Editor API to provide a unifie
 ```
 
 ### Webview Sandboxing and Security Constraints
-Standard VS Code extensions run inside a sandboxed Extension Host process, separate from the main VS Code workbench thread. The webview itself is isolated in an iframe with no access to Node.js or the local file system. 
+Standard VS Code extensions run inside a sandboxed Extension Host process, separate from the main VS Code workbench thread. The webview itself is isolated in an iframe with no access to Node.js or the local file system.
 
 To edit files securely, the webview captures edit events and routes them via JSON messages (`postMessage`) to the Custom Editor Provider running on the Extension Host. The Host then applies changes using VS Code's formal API layer.
 
 ### Abstract Syntax Tree (AST) Line Mapping
-Because the Markdown parser (`markdown-it`) processes source code into an AST, we can inspect block-level tokens before they compile to HTML. 
+Because the Markdown parser (`markdown-it`) processes source code into an AST, we can inspect block-level tokens before they compile to HTML.
 
 We injected a custom plugin rule into the parsing pipeline that reads the token's source map boundaries (`token.map`) and stamps them onto the emitted HTML tags as dataset properties:
 ```html
@@ -69,3 +69,13 @@ To protect users from malicious Markdown documents containing embedded scripts, 
 - **Block-level Granularity:** Source mappings are resolved at the block level (headings, paragraphs, lists, table elements). Inline elements (bold, italicized runs) map back to their containing block.
 - **Document Navigation:** Future updates will resolve webview navigation for local Markdown file links, routing document lookup directly through the custom provider.
 - **Extended Render Engines:** Integration of plugins for Mermaid diagram formatting (`markdown-it-mermaid`) and mathematical notation (`markdown-it-katex`).
+
+
+### TODO
+
+- [ ] polish the peek UI
+- [ ] fix preview
+    - [ ] few elements not parsed correctly
+- [ ] box highlighting -> block quote sorta vertical line
+- [ ] better css color style matching
+- [ ] full swithc on ( cntrl + shift + V )

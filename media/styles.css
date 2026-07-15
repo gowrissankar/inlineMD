@@ -307,3 +307,19 @@ th {
 .hljs-strong {
   font-weight: bold;
 }
+
+/* ─── Saved flash animation ───────────────────────────────────────────────── */
+@keyframes saved-flash {
+  0% {
+    background-color: var(--vscode-editor-findMatchHighlightBackground, rgba(234, 92, 0, 0.33));
+    outline: 1px solid var(--vscode-focusBorder, #007acc);
+  }
+  100% {
+    background-color: transparent;
+    outline: 1px solid transparent;
+  }
+}
+
+.flash-saved {
+  animation: saved-flash 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}

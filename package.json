@@ -2,11 +2,22 @@
   "name": "inlinemd",
   "displayName": "inlineMD",
   "description": "Edit Markdown source inline — directly from the preview.",
+  "publisher": "gowrissankar",
   "version": "0.0.1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gowrissankar/inlineMD.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gowrissankar/inlineMD/issues"
+  },
+  "homepage": "https://github.com/gowrissankar/inlineMD#readme",
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
+    "Formatters",
     "Other"
   ],
   "activationEvents": [

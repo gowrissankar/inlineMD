@@ -8,16 +8,34 @@
   let currentWidget = null;
   let currentTarget = null;
 
+  // Track the line range of the last edited block to flash it after re-render
+  let lastSavedStart = null;
+  let lastSavedEnd = null;
+
   // Messages from extension host
   window.addEventListener('message', (event) => {
     const msg = event.data;
     if (msg.type === 'render') {
-
       currentWidget = null;
       currentTarget = null;
+      document.body.style.overflow = ''; // Unlock scroll
+
       const scrollTop = preview.scrollTop;
       preview.innerHTML = msg.html;
       preview.scrollTop = scrollTop;
+
+      // Flash the edited element
+      if (lastSavedStart !== null) {
+        const query = `[data-line-start="${lastSavedStart}"][data-line-end="${lastSavedEnd}"]`;
+        const updatedEl = preview.querySelector(query);
+        if (updatedEl) {
+          updatedEl.classList.add('flash-saved');
+          // Clean up
+          setTimeout(() => updatedEl.classList.remove('flash-saved'), 1000);
+        }
+        lastSavedStart = null;
+        lastSavedEnd = null;
+      }
     } else if (msg.type === 'lines') {
       showWidget(msg);
     }
@@ -43,6 +61,23 @@
     });
   });
 
+  // Intercept relative link clicks to open them in VS Code natively
+  document.addEventListener('click', (e) => {
+    let el = e.target;
+    while (el && el !== preview) {
+      if (el.tagName === 'A' && el.getAttribute('href')) {
+        const href = el.getAttribute('href');
+        // Check if it is a relative local link (does not start with a protocol or hash)
+        if (!/^https?:\/\//i.test(href) && !href.startsWith('#')) {
+          e.preventDefault();
+          vscode.postMessage({ type: 'openLink', href });
+        }
+        break;
+      }
+      el = el.parentElement;
+    }
+  });
+
   //esc to close
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && currentWidget) { closeWidget(); }
@@ -57,6 +92,7 @@
       currentWidget.remove();
       currentWidget = null;
       currentTarget = null;
+      document.body.style.overflow = ''; // Restore scroll when widget closes
     }
   }
 
@@ -125,12 +161,16 @@
 
     currentWidget = widget;
     currentTarget.insertAdjacentElement('afterend', widget);
+    // Lock scrolling on the main page while editing
+    document.body.style.overflow = 'hidden';
 
     if (textarea) {
       // Enter = save, Shift+Enter = newline (default textarea behaviour)
       textarea.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
+          lastSavedStart = targetStart;
+          lastSavedEnd = targetEnd;
           vscode.postMessage({
             type: 'save',
             start: targetStart,
@@ -149,6 +189,18 @@
     ta.value = lines.join('\n');
     ta.spellcheck = false;
     ta.style.height = (lines.length * LINE_H) + 'px';
+
+    // Enable Tab indentation inside peek editor
+    ta.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = ta.selectionStart;
+        const end = ta.selectionEnd;
+        ta.value = ta.value.substring(0, start) + '    ' + ta.value.substring(end);
+        ta.selectionStart = ta.selectionEnd = start + 4;
+      }
+    });
+
     return ta;
   }
 

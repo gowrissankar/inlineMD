@@ -54,6 +54,9 @@ class InlineMDEditorProvider implements vscode.CustomTextEditorProvider {
         case 'save':
           this.handleSave(message.start, message.end, message.newText, document);
           break;
+        case 'openLink':
+          this.handleOpenLink(message.href, document);
+          break;
       }
     });
 
@@ -68,7 +71,16 @@ class InlineMDEditorProvider implements vscode.CustomTextEditorProvider {
   }
 
   private sendContent(document: vscode.TextDocument, panel: vscode.WebviewPanel): void {
-    panel.webview.postMessage({ type: 'render', html: renderMarkdown(document.getText()) });
+    let html = renderMarkdown(document.getText());
+
+    // Resolve relative local image src attributes to webview-safe URIs
+    html = html.replace(/(<img[^>]+src=["'])(?!https?:\/\/|data:)([^"']+)["']/g, (match, prefix, path) => {
+      const folderUri = vscode.Uri.joinPath(document.uri, '..');
+      const imgUri = vscode.Uri.joinPath(folderUri, path);
+      return `${prefix}${panel.webview.asWebviewUri(imgUri).toString()}"`;
+    });
+
+    panel.webview.postMessage({ type: 'render', html });
   }
 
   private handleGetLines(
@@ -111,6 +123,12 @@ class InlineMDEditorProvider implements vscode.CustomTextEditorProvider {
     const edit = new vscode.WorkspaceEdit();
     edit.replace(document.uri, range, newText);
     await vscode.workspace.applyEdit(edit);
+  }
+
+  private async handleOpenLink(href: string, document: vscode.TextDocument): Promise<void> {
+    const folderUri = vscode.Uri.joinPath(document.uri, '..');
+    const targetUri = vscode.Uri.joinPath(folderUri, href);
+    vscode.commands.executeCommand('vscode.open', targetUri);
   }
 }
 
